@@ -1,7 +1,7 @@
 # 📚 Application de Lecture Sociale
 
 > Une plateforme collaborative pour la lecture partagée d'EPUBs avec annotations et partage social
-> génrée avec code claude. Non encore testée
+> générée avec code claude. Non encore testée
 
 ![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
