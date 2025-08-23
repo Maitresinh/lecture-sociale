@@ -1,0 +1,136 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  password  String
+  status    String @default("USER")
+  avatar    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  createdReadings SharedReading[]
+  participations  SharedReadingParticipant[]
+  annotations     Annotation[]
+  citations       Citation[]
+
+  @@map("users")
+}
+
+model Book {
+  id          String   @id @default(cuid())
+  title       String
+  author      String
+  description String?
+  coverUrl    String?
+  epubUrl     String
+  epubPath    String
+  totalPages  Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  sharedReadings SharedReading[]
+
+  @@map("books")
+}
+
+model SharedReading {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  startDate   DateTime
+  endDate     DateTime
+  isPublic    Boolean  @default(true)
+  inviteCode  String?  @unique
+  createdBy   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  bookId       String
+  book         Book                       @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  creator      User                       @relation(fields: [createdBy], references: [id])
+  participants SharedReadingParticipant[]
+  annotations  Annotation[]
+
+  @@map("shared_readings")
+}
+
+model SharedReadingParticipant {
+  id       String @id @default(cuid())
+  progress Float  @default(0.0)
+  joinedAt DateTime @default(now())
+
+  // Relations
+  sharedReadingId String
+  userId          String
+  sharedReading   SharedReading @relation(fields: [sharedReadingId], references: [id], onDelete: Cascade)
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([sharedReadingId, userId])
+  @@map("shared_reading_participants")
+}
+
+model Annotation {
+  id           String   @id @default(cuid())
+  content      String
+  cfi          String   // EPUB Canonical Fragment Identifier
+  selectedText String
+  page         Int
+  isPublic     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  sharedReadingId String
+  userId          String
+  sharedReading   SharedReading @relation(fields: [sharedReadingId], references: [id], onDelete: Cascade)
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  citations       Citation[]
+
+  @@map("annotations")
+}
+
+model Citation {
+  id                String     @id @default(cuid())
+  text              String
+  author            String
+  bookTitle         String
+  sharedOnPlatforms String // JSON string of platforms array
+  createdAt         DateTime   @default(now())
+
+  // Relations
+  annotationId String
+  userId       String
+  annotation   Annotation @relation(fields: [annotationId], references: [id], onDelete: Cascade)
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("citations")
+}
+
+model ReadingSession {
+  id              String   @id @default(cuid())
+  sharedReadingId String
+  userId          String
+  currentCfi      String
+  progress        Float
+  lastReadAt      DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([sharedReadingId, userId])
+  @@map("reading_sessions")
+}
+
+// Note: Les enums sont remplacés par des strings pour SQLite
+// UserStatus: "USER" | "TRANSLATOR" | "AUTHOR" | "GUEST" | "ADMIN" 
+// Platform: "TWITTER" | "FACEBOOK" | "INSTAGRAM"
