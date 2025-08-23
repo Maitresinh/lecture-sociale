@@ -79,7 +79,7 @@ export default function ReaderPage({ user }: ReaderPageProps) {
             },
             content: 'Ce passage est particulièrement émouvant !',
             cfi: 'epubcfi(/6/4[chapter-1]!/4/2/2[page-1]/2:0)',
-            selectedText: 'Il avait l\\'air d\\'un pauvre homme qui a faim.',
+            selectedText: 'Il avait une apparence de pauvre homme qui a faim.',
             page: 1,
             isPublic: true,
             createdAt: new Date('2024-01-15'),

@@ -64,7 +64,7 @@ export default function HomePage({ user }: HomePageProps) {
           id: '2',
           title: 'Voyage au centre de la Terre',
           author: 'Jules Verne',
-          description: 'Roman d\\'aventures et de science-fiction.',
+          description: 'Roman d\'aventures et de science-fiction.',
           epubUrl: '/books/voyage-centre-terre.epub',
           totalPages: 300,
           createdAt: new Date()
