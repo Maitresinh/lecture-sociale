@@ -25,19 +25,30 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
 
     try {
       if (isLogin) {
-        // TODO: Appel API de connexion
-        // Pour l'instant, simulation
-        const mockUser: User = {
-          id: 'user1',
-          email: formData.email,
-          name: formData.email.split('@')[0],
-          status: formData.email === 'admin@example.com' ? 'admin' : 'user',
-          createdAt: new Date()
-        }
+        // Appel API de connexion
+        const response = await fetch('http://localhost:3001/api/auth/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            email: formData.email,
+            password: formData.password
+          })
+        })
         
-        localStorage.setItem('token', 'mock-token')
-        onLogin(mockUser)
-        navigate('/')
+        const result = await response.json()
+        
+        if (response.ok && result.success) {
+          // Connexion réussie
+          localStorage.setItem('token', result.data.token)
+          onLogin(result.data.user)
+          navigate('/')
+        } else {
+          // Erreur de connexion
+          alert(result.error || 'Erreur de connexion')
+          return
+        }
       } else {
         // TODO: Appel API d'inscription
         if (formData.password !== formData.confirmPassword) {
@@ -200,8 +211,8 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
               <strong>Comptes de démonstration :</strong>
             </p>
             <p className="text-xs text-muted-foreground">
-              Admin : admin@example.com<br />
-              Utilisateur : user@example.com
+              Admin : admin@lecture-sociale.fr / admin123<br />
+              Auteur : marie@example.com / password123
             </p>
           </div>
         )}

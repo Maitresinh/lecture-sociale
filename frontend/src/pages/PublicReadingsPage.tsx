@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { 
   BookOpen, 
   Users, 
@@ -18,177 +18,49 @@ export default function PublicReadingsPage() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'upcoming' | 'ended'>('active')
-  const [currentPage, setCurrentPage] = useState(1)
 
   useEffect(() => {
     loadReadings()
-  }, [searchTerm, filterStatus, currentPage])
+  }, [searchTerm, filterStatus])
 
   const loadReadings = async () => {
     setLoading(true)
     try {
-      // TODO: Remplacer par un appel API réel
-      const mockReadings: SharedReading[] = [
-        {
-          id: '1',
-          bookId: '1',
-          title: 'Découvrons ensemble Les Misérables',
-          description: 'Une lecture collaborative du chef-d\'œuvre de Victor Hugo. Plongeons dans cette fresque sociale du XIXe siècle et partageons nos réflexions sur ce récit intemporel.',
-          startDate: new Date('2024-01-01'),
-          endDate: new Date('2024-12-31'),
-          isPublic: true,
-          book: {
-            id: '1',
-            title: 'Les Misérables',
-            author: 'Victor Hugo',
-            description: 'Roman historique français',
-            coverUrl: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=300&h=400&fit=crop',
-            epubUrl: '/books/les-miserables.epub',
-            totalPages: 1200,
-            createdAt: new Date()
-          },
-          createdBy: 'admin',
-          creator: {
-            id: 'admin',
-            name: 'Marie Dubois',
-            email: 'marie@example.com',
-            status: 'admin',
-            avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face',
-            createdAt: new Date()
-          },
-          participants: Array.from({ length: 15 }, (_, i) => ({
-            id: `p${i}`,
-            sharedReadingId: '1',
-            userId: `user${i}`,
-            user: {
-              id: `user${i}`,
-              name: `Lecteur ${i + 1}`,
-              email: `lecteur${i + 1}@example.com`,
-              status: 'user' as const,
-              createdAt: new Date()
-            },
-            joinedAt: new Date(),
-            progress: Math.random()
-          })),
-          annotations: [],
-          createdAt: new Date('2024-01-01')
-        },
-        {
-          id: '2',
-          bookId: '2',
-          title: 'Voyage au centre de la Terre - Club de lecture',
-          description: 'Embarquons pour une aventure extraordinaire avec Jules Verne ! Une lecture parfaite pour découvrir les merveilles de la science-fiction classique.',
-          startDate: new Date('2024-02-01'),
-          endDate: new Date('2024-03-15'),
-          isPublic: true,
-          book: {
-            id: '2',
-            title: 'Voyage au centre de la Terre',
-            author: 'Jules Verne',
-            description: 'Roman d\'aventures et de science-fiction',
-            coverUrl: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=300&h=400&fit=crop',
-            epubUrl: '/books/voyage-centre-terre.epub',
-            totalPages: 300,
-            createdAt: new Date()
-          },
-          createdBy: 'user1',
-          creator: {
-            id: 'user1',
-            name: 'Pierre Martin',
-            email: 'pierre@example.com',
-            status: 'author',
-            avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face',
-            createdAt: new Date()
-          },
-          participants: Array.from({ length: 8 }, (_, i) => ({
-            id: `p2${i}`,
-            sharedReadingId: '2',
-            userId: `user2${i}`,
-            user: {
-              id: `user2${i}`,
-              name: `Aventurier ${i + 1}`,
-              email: `aventurier${i + 1}@example.com`,
-              status: 'user' as const,
-              createdAt: new Date()
-            },
-            joinedAt: new Date(),
-            progress: Math.random()
-          })),
-          annotations: [],
-          createdAt: new Date('2024-01-15')
-        },
-        {
-          id: '3',
-          bookId: '3',
-          title: 'Le Petit Prince - Lecture philosophique',
-          description: 'Redécouvrons ensemble ce conte philosophique intemporel. Une lecture qui nous invite à retrouver notre regard d\'enfant sur le monde.',
-          startDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Dans une semaine
-          endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // Dans un mois
-          isPublic: true,
-          book: {
-            id: '3',
-            title: 'Le Petit Prince',
-            author: 'Antoine de Saint-Exupéry',
-            description: 'Conte philosophique et poétique',
-            coverUrl: 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=300&h=400&fit=crop',
-            epubUrl: '/books/petit-prince.epub',
-            totalPages: 120,
-            createdAt: new Date()
-          },
-          createdBy: 'user3',
-          creator: {
-            id: 'user3',
-            name: 'Sophie Laurent',
-            email: 'sophie@example.com',
-            status: 'translator',
-            avatar: 'https://images.unsplash.com/photo-1494790108755-2616b2e0a45b?w=100&h=100&fit=crop&crop=face',
-            createdAt: new Date()
-          },
-          participants: Array.from({ length: 3 }, (_, i) => ({
-            id: `p3${i}`,
-            sharedReadingId: '3',
-            userId: `user3${i}`,
-            user: {
-              id: `user3${i}`,
-              name: `Rêveur ${i + 1}`,
-              email: `reveur${i + 1}@example.com`,
-              status: 'user' as const,
-              createdAt: new Date()
-            },
-            joinedAt: new Date(),
-            progress: 0
-          })),
-          annotations: [],
-          createdAt: new Date()
+      // Charger les vraies lectures depuis l'API
+      const response = await fetch('http://localhost:3001/api/shared-readings/public')
+      if (response.ok) {
+        const result = await response.json()
+        let readings = result.data.sharedReadings || []
+        
+        // Filtrage simple côté client
+        if (searchTerm) {
+          readings = readings.filter((reading: SharedReading) =>
+            reading.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            reading.book.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            reading.book.author.toLowerCase().includes(searchTerm.toLowerCase())
+          )
         }
-      ]
 
-      // Filtrage simple côté client (en production, cela se ferait côté serveur)
-      let filteredReadings = mockReadings
+        const now = new Date()
+        if (filterStatus === 'active') {
+          readings = readings.filter((r: SharedReading) => 
+            new Date(r.startDate) <= now && new Date(r.endDate) >= now
+          )
+        } else if (filterStatus === 'upcoming') {
+          readings = readings.filter((r: SharedReading) => new Date(r.startDate) > now)
+        } else if (filterStatus === 'ended') {
+          readings = readings.filter((r: SharedReading) => new Date(r.endDate) < now)
+        }
 
-      if (searchTerm) {
-        filteredReadings = filteredReadings.filter(reading =>
-          reading.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          reading.book.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          reading.book.author.toLowerCase().includes(searchTerm.toLowerCase())
-        )
+        setReadings(readings)
+      } else {
+        console.error('API failed, no readings available')
+        setReadings([])
       }
-
-      const now = new Date()
-      if (filterStatus === 'active') {
-        filteredReadings = filteredReadings.filter(r => 
-          new Date(r.startDate) <= now && new Date(r.endDate) >= now
-        )
-      } else if (filterStatus === 'upcoming') {
-        filteredReadings = filteredReadings.filter(r => new Date(r.startDate) > now)
-      } else if (filterStatus === 'ended') {
-        filteredReadings = filteredReadings.filter(r => new Date(r.endDate) < now)
-      }
-
-      setReadings(filteredReadings)
-      setLoading(false)
     } catch (error) {
-      console.error('Erreur lors du chargement:', error)
+      console.error('Error loading readings:', error)
+      setReadings([])
+    } finally {
       setLoading(false)
     }
   }
@@ -329,11 +201,11 @@ export default function PublicReadingsPage() {
                       <User className="h-4 w-4 text-muted-foreground" />
                       <span className="text-muted-foreground">Par</span>
                       <span className="font-medium">{reading.creator.name}</span>
-                      {reading.creator.status !== 'user' && (
+                      {reading.creator.status !== 'USER' && (
                         <span className="text-xs bg-muted px-1.5 py-0.5 rounded">
-                          {reading.creator.status === 'admin' ? 'Admin' :
-                           reading.creator.status === 'author' ? 'Auteur' :
-                           reading.creator.status === 'translator' ? 'Traducteur' :
+                          {reading.creator.status === 'ADMIN' ? 'Admin' :
+                           reading.creator.status === 'AUTHOR' ? 'Auteur' :
+                           reading.creator.status === 'TRANSLATOR' ? 'Traducteur' :
                            'Invité'}
                         </span>
                       )}
@@ -348,18 +220,13 @@ export default function PublicReadingsPage() {
                     
                     <div className="flex items-center space-x-1 text-muted-foreground">
                       <MessageCircle className="h-4 w-4" />
-                      <span>{reading.annotations.length} annotations</span>
+                      <span>{reading._count?.annotations || reading.annotations?.length || 0} annotations</span>
                     </div>
                   </div>
 
                   {/* Action */}
                   {statusInfo.status !== 'ended' ? (
-                    <Link 
-                      to={`/lecture/${reading.id}`}
-                      className="block w-full text-center px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
-                    >
-                      {statusInfo.status === 'upcoming' ? 'Rejoindre' : 'Continuer la lecture'}
-                    </Link>
+                    <JoinReadingButton reading={reading} statusInfo={statusInfo} />
                   ) : (
                     <Link 
                       to={`/lecture/${reading.id}`}
@@ -397,5 +264,58 @@ export default function PublicReadingsPage() {
         </div>
       )}
     </div>
+  )
+}
+
+function JoinReadingButton({ reading, statusInfo }: { reading: SharedReading, statusInfo: any }) {
+  const navigate = useNavigate()
+  const [isJoining, setIsJoining] = useState(false)
+
+  const handleJoin = async () => {
+    const token = localStorage.getItem('token')
+    if (!token) {
+      navigate('/login')
+      return
+    }
+
+    setIsJoining(true)
+    try {
+      const response = await fetch(`http://localhost:3001/api/shared-readings/${reading.id}/join`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({})
+      })
+
+      if (response.ok) {
+        // Rejoindre réussi, rediriger vers la lecture
+        navigate(`/lecture/${reading.id}`)
+      } else {
+        const error = await response.json()
+        if (error.error === 'Vous participez déjà à cette lecture') {
+          // Déjà participant, aller directement à la lecture
+          navigate(`/lecture/${reading.id}`)
+        } else {
+          alert(`Erreur: ${error.error}`)
+        }
+      }
+    } catch (error) {
+      alert(`Erreur: ${error}`)
+    } finally {
+      setIsJoining(false)
+    }
+  }
+
+  return (
+    <button 
+      onClick={handleJoin}
+      disabled={isJoining}
+      className="block w-full text-center px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50"
+    >
+      {isJoining ? 'Connexion...' : 
+       statusInfo.status === 'upcoming' ? 'Rejoindre' : 'Continuer la lecture'}
+    </button>
   )
 }

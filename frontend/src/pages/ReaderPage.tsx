@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Users, Clock, ArrowLeft, Share2 } from 'lucide-react'
-import EpubReader from '../components/EpubReader'
+import SimpleEpubReader from '../components/SimpleEpubReader'
 import { User, SharedReading, Annotation } from '../types'
 import { calculateTimeRemaining, formatDateTime } from '../lib/utils'
 
@@ -18,77 +18,43 @@ export default function ReaderPage({ user }: ReaderPageProps) {
   const [loading, setLoading] = useState(true)
   const [currentCfi, setCurrentCfi] = useState('')
   const [progress, setProgress] = useState(0)
+  const progressTimeout = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
     if (!sharedReadingId) return
 
-    // TODO: Remplacer par un appel API réel
     const loadSharedReading = async () => {
       try {
-        // Simulation de données
-        const mockReading: SharedReading = {
-          id: sharedReadingId,
-          bookId: '1',
-          title: 'Lecture collaborative - Les Misérables',
-          description: 'Découvrons ensemble ce chef-d\'oeuvre de Victor Hugo',
-          startDate: new Date('2024-01-01'),
-          endDate: new Date('2024-12-31'),
-          isPublic: true,
-          book: {
-            id: '1',
-            title: 'Les Misérables',
-            author: 'Victor Hugo',
-            description: 'Un roman historique français',
-            epubUrl: '/books/les-miserables.epub', // URL fictive pour démo
-            totalPages: 1200,
-            createdAt: new Date()
-          },
-          createdBy: 'admin',
-          creator: {
-            id: 'admin',
-            name: 'Admin',
-            email: 'admin@example.com',
-            status: 'admin',
-            createdAt: new Date()
-          },
-          participants: [
-            {
-              id: 'p1',
-              sharedReadingId: sharedReadingId,
-              userId: user.id,
-              user: user,
-              joinedAt: new Date(),
-              progress: 0.25
-            }
-          ],
-          annotations: [],
-          createdAt: new Date()
+        const token = localStorage.getItem('token')
+        if (!token) {
+          navigate('/login')
+          return
         }
 
-        const mockAnnotations: Annotation[] = [
-          {
-            id: 'ann1',
-            sharedReadingId: sharedReadingId,
-            userId: 'user2',
-            user: {
-              id: 'user2',
-              name: 'Marie Dubois',
-              email: 'marie@example.com',
-              status: 'user',
-              createdAt: new Date()
-            },
-            content: 'Ce passage est particulièrement émouvant !',
-            cfi: 'epubcfi(/6/4[chapter-1]!/4/2/2[page-1]/2:0)',
-            selectedText: 'Il avait une apparence de pauvre homme qui a faim.',
-            page: 1,
-            isPublic: true,
-            createdAt: new Date('2024-01-15'),
-            updatedAt: new Date('2024-01-15')
+        // Charger les données de la lecture partagée
+        const response = await fetch(`http://localhost:3001/api/shared-readings/${sharedReadingId}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
           }
-        ]
+        })
 
-        setSharedReading(mockReading)
-        setAnnotations(mockAnnotations)
+        if (response.ok) {
+          const result = await response.json()
+          const reading = result.data
+          
+          // Trouver la progression de l'utilisateur actuel
+          const userParticipant = reading.participants.find((p: any) => p.userId === user.id)
+          if (userParticipant) {
+            setProgress(userParticipant.progress || 0)
+          }
+          
+          setSharedReading(reading)
+          setAnnotations(reading.annotations || [])
+        } else {
+          // Si pas d'accès, essayer de voir si c'est une lecture publique
+          console.error('Erreur lors du chargement de la lecture')
+        }
+        
         setLoading(false)
       } catch (error) {
         console.error('Erreur lors du chargement:', error)
@@ -117,8 +83,32 @@ export default function ReaderPage({ user }: ReaderPageProps) {
     setCurrentCfi(cfi)
     setProgress(newProgress)
     
-    // TODO: Sauvegarder la progression via API
-    console.log('Progression:', newProgress, 'CFI:', cfi)
+    // Annuler le timeout précédent s'il existe
+    if (progressTimeout.current) {
+      clearTimeout(progressTimeout.current)
+    }
+    
+    // Sauvegarder la progression après un délai (throttling)
+    progressTimeout.current = setTimeout(async () => {
+      try {
+        const token = localStorage.getItem('token')
+        if (!token || !sharedReadingId) return
+
+        await fetch(`http://localhost:3001/api/shared-readings/${sharedReadingId}/progress`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            progress: newProgress,
+            cfi: cfi
+          })
+        })
+      } catch (error) {
+        console.error('Erreur lors de la sauvegarde de la progression:', error)
+      }
+    }, 1000) // Attendre 1 seconde avant de sauvegarder
   }
 
   const shareReading = () => {
@@ -243,8 +233,8 @@ export default function ReaderPage({ user }: ReaderPageProps) {
 
       {/* Lecteur EPUB */}
       <div className="flex-1 overflow-hidden">
-        <EpubReader
-          epubUrl={sharedReading.book.epubUrl}
+        <SimpleEpubReader
+          epubUrl={`http://localhost:3001${sharedReading.book.epubUrl}`}
           user={user}
           annotations={annotations}
           onAddAnnotation={handleAddAnnotation}

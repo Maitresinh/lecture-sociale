@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Clock, Users, BookOpen, ArrowRight } from 'lucide-react'
 import { User, SharedReading } from '../types'
 import { calculateTimeRemaining, formatDate } from '../lib/utils'
@@ -13,76 +13,37 @@ export default function HomePage({ user }: HomePageProps) {
   const [featuredReadings, setFeaturedReadings] = useState<SharedReading[]>([])
 
   useEffect(() => {
-    // TODO: Récupérer les données depuis l'API
-    // Pour l'instant, données fictives
-    if (user) {
-      const mockMyReadings: SharedReading[] = [
-        {
-          id: '1',
-          bookId: '1',
-          title: 'Lecture collaborative - Les Misérables',
-          description: 'Découvrons ensemble ce chef-d\'oeuvre de Victor Hugo',
-          startDate: new Date('2024-01-01'),
-          endDate: new Date('2024-12-31'),
-          isPublic: true,
-          book: {
-            id: '1',
-            title: 'Les Misérables',
-            author: 'Victor Hugo',
-            description: 'Un roman historique français qui décrit la vie de diverses personnes en France au début du XIXe siècle.',
-            epubUrl: '/books/les-miserables.epub',
-            totalPages: 1200,
-            createdAt: new Date()
-          },
-          createdBy: 'admin',
-          creator: {
-            id: 'admin',
-            name: 'Admin',
-            email: 'admin@lecture-sociale.fr',
-            status: 'admin',
-            createdAt: new Date()
-          },
-          participants: [],
-          annotations: [],
-          createdAt: new Date()
+    const loadReadings = async () => {
+      try {
+        const token = localStorage.getItem('token')
+        
+        if (user && token) {
+          // Charger mes lectures
+          const myReadingsResponse = await fetch('http://localhost:3001/api/shared-readings/my', {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          })
+          
+          if (myReadingsResponse.ok) {
+            const myResult = await myReadingsResponse.json()
+            setMyReadings(myResult.data || [])
+          }
         }
-      ]
-      setMyReadings(mockMyReadings)
+
+        // Lectures publiques (pour les lectures en vedette)
+        const publicResponse = await fetch('http://localhost:3001/api/shared-readings/public?limit=3')
+        
+        if (publicResponse.ok) {
+          const publicResult = await publicResponse.json()
+          setFeaturedReadings(publicResult.data.sharedReadings || [])
+        }
+      } catch (error) {
+        console.error('Erreur chargement lectures:', error)
+      }
     }
 
-    // Lectures en vedette
-    const mockFeatured: SharedReading[] = [
-      {
-        id: '2',
-        bookId: '2',
-        title: 'Club de lecture - Voyage au centre de la Terre',
-        description: 'Une aventure extraordinaire de Jules Verne',
-        startDate: new Date('2024-01-15'),
-        endDate: new Date('2024-02-15'),
-        isPublic: true,
-        book: {
-          id: '2',
-          title: 'Voyage au centre de la Terre',
-          author: 'Jules Verne',
-          description: 'Roman d\'aventures et de science-fiction.',
-          epubUrl: '/books/voyage-centre-terre.epub',
-          totalPages: 300,
-          createdAt: new Date()
-        },
-        createdBy: 'user1',
-        creator: {
-          id: 'user1',
-          name: 'Marie Dubois',
-          email: 'marie@example.com',
-          status: 'user',
-          createdAt: new Date()
-        },
-        participants: [],
-        annotations: [],
-        createdAt: new Date()
-      }
-    ]
-    setFeaturedReadings(mockFeatured)
+    loadReadings()
   }, [user])
 
   if (!user) {
@@ -232,12 +193,55 @@ function ReadingCard({ reading }: { reading: SharedReading }) {
         </div>
       </div>
       
-      <Link 
-        to={`/lecture/${reading.id}`}
-        className="block w-full mt-4 text-center px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
-      >
-        Continuer la lecture
-      </Link>
+      <JoinOrContinueButton reading={reading} />
     </div>
+  )
+}
+
+function JoinOrContinueButton({ reading }: { reading: SharedReading }) {
+  const navigate = useNavigate()
+  const [isJoining, setIsJoining] = useState(false)
+
+  const handleClick = async () => {
+    const token = localStorage.getItem('token')
+    if (!token) {
+      navigate('/login')
+      return
+    }
+
+    setIsJoining(true)
+    try {
+      const response = await fetch(`http://localhost:3001/api/shared-readings/${reading.id}/join`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({})
+      })
+
+      if (response.ok || response.status === 400) {
+        // Succès ou déjà participant, aller à la lecture
+        navigate(`/lecture/${reading.id}`)
+      } else {
+        const error = await response.json()
+        alert(`Erreur: ${error.error}`)
+      }
+    } catch (error) {
+      // En cas d'erreur, essayer quand même d'aller à la lecture
+      navigate(`/lecture/${reading.id}`)
+    } finally {
+      setIsJoining(false)
+    }
+  }
+
+  return (
+    <button 
+      onClick={handleClick}
+      disabled={isJoining}
+      className="block w-full mt-4 text-center px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50"
+    >
+      {isJoining ? 'Connexion...' : 'Continuer la lecture'}
+    </button>
   )
 }

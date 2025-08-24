@@ -132,7 +132,9 @@ router.post('/login', asyncHandler(async (req, res) => {
 router.get('/me', authenticate, asyncHandler(async (req, res) => {
   res.json({
     success: true,
-    data: req.user
+    data: {
+      user: req.user
+    }
   })
 }))
 

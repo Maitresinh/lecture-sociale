@@ -2,7 +2,7 @@ export interface User {
   id: string;
   email: string;
   name: string;
-  status: 'user' | 'translator' | 'author' | 'guest' | 'admin';
+  status: 'USER' | 'TRANSLATOR' | 'AUTHOR' | 'GUEST' | 'ADMIN';
   avatar?: string;
   createdAt: Date;
 }
@@ -31,7 +31,10 @@ export interface SharedReading {
   createdBy: string;
   creator: User;
   participants: SharedReadingParticipant[];
-  annotations: Annotation[];
+  annotations?: Annotation[];
+  _count?: {
+    annotations: number;
+  };
   createdAt: Date;
 }
 

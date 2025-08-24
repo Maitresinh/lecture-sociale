@@ -377,4 +377,160 @@ router.get('/stats/:sharedReadingId',
   })
 )
 
+// ========================================
+// PERSONAL ANNOTATIONS (for individual reading)
+// ========================================
+
+// @desc    Get personal annotations for a user and specific epub
+// @route   GET /api/annotations/personal/:epubId
+// @access  Private
+router.get('/personal/:epubId', authenticate, asyncHandler(async (req, res) => {
+  const userId = req.user.id
+  const { epubId } = req.params
+
+  const annotations = await prisma.personalAnnotation.findMany({
+    where: {
+      userId,
+      epubId
+    },
+    orderBy: {
+      createdAt: 'desc'
+    }
+  })
+
+  res.json({
+    success: true,
+    data: {
+      annotations
+    }
+  })
+}))
+
+// @desc    Create a personal annotation
+// @route   POST /api/annotations/personal
+// @access  Private
+router.post('/personal', authenticate, asyncHandler(async (req, res) => {
+  const createPersonalSchema = Joi.object({
+    epubId: Joi.string().required(),
+    cfiRange: Joi.string().required(),
+    text: Joi.string().min(1).max(2000).required(),
+    comment: Joi.string().min(1).max(1000).required(),
+    color: Joi.string().pattern(/^#[0-9A-Fa-f]{6}$/).required()
+  })
+
+  const { error } = createPersonalSchema.validate(req.body)
+  if (error) {
+    return res.status(400).json({
+      success: false,
+      error: error.details[0].message
+    })
+  }
+
+  const userId = req.user.id
+  const { epubId, cfiRange, text, comment, color } = req.body
+
+  const annotation = await prisma.personalAnnotation.create({
+    data: {
+      userId,
+      epubId,
+      cfiRange,
+      text,
+      comment,
+      color
+    }
+  })
+
+  res.status(201).json({
+    success: true,
+    data: {
+      annotation
+    }
+  })
+}))
+
+// @desc    Update a personal annotation
+// @route   PUT /api/annotations/personal/:id
+// @access  Private
+router.put('/personal/:id', authenticate, asyncHandler(async (req, res) => {
+  const updatePersonalSchema = Joi.object({
+    comment: Joi.string().min(1).max(1000).optional(),
+    color: Joi.string().pattern(/^#[0-9A-Fa-f]{6}$/).optional()
+  })
+
+  const { error } = updatePersonalSchema.validate(req.body)
+  if (error) {
+    return res.status(400).json({
+      success: false,
+      error: error.details[0].message
+    })
+  }
+
+  const userId = req.user.id
+  const { id } = req.params
+  const { comment, color } = req.body
+
+  // Check if annotation belongs to the user
+  const existingAnnotation = await prisma.personalAnnotation.findFirst({
+    where: {
+      id,
+      userId
+    }
+  })
+
+  if (!existingAnnotation) {
+    return res.status(404).json({ 
+      success: false, 
+      error: 'Annotation non trouvée ou accès refusé' 
+    })
+  }
+
+  const updateData: any = {}
+  if (comment !== undefined) updateData.comment = comment
+  if (color !== undefined) updateData.color = color
+
+  const annotation = await prisma.personalAnnotation.update({
+    where: { id },
+    data: updateData
+  })
+
+  res.json({
+    success: true,
+    data: {
+      annotation
+    }
+  })
+}))
+
+// @desc    Delete a personal annotation
+// @route   DELETE /api/annotations/personal/:id
+// @access  Private
+router.delete('/personal/:id', authenticate, asyncHandler(async (req, res) => {
+  const userId = req.user.id
+  const { id } = req.params
+
+  // Check if annotation belongs to the user
+  const existingAnnotation = await prisma.personalAnnotation.findFirst({
+    where: {
+      id,
+      userId
+    }
+  })
+
+  if (!existingAnnotation) {
+    return res.status(404).json({ 
+      success: false, 
+      error: 'Annotation non trouvée ou accès refusé' 
+    })
+  }
+
+  await prisma.personalAnnotation.delete({
+    where: { id }
+  })
+
+  res.json({
+    success: true,
+    message: 'Annotation supprimée avec succès'
+  })
+}))
+
 export default router

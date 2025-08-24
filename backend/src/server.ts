@@ -14,6 +14,7 @@ import bookRoutes from './routes/books'
 import sharedReadingRoutes from './routes/sharedReadings'
 import annotationRoutes from './routes/annotations'
 import adminRoutes from './routes/admin'
+import epubRoutes from './routes/epub'
 
 const app = express()
 const prisma = new PrismaClient()
@@ -33,11 +34,11 @@ app.use(cors({
   credentials: true
 }))
 
-// Rate limiting
+// Rate limiting (plus permissif en dev)
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limite à 100 requêtes par IP
-  message: 'Trop de requêtes depuis cette IP'
+  max: 500, // limite à 500 requêtes par IP (dev)
+  message: { error: 'Trop de requêtes depuis cette IP, réessayez dans 15 minutes' }
 })
 app.use('/api/', limiter)
 
@@ -59,9 +60,12 @@ app.use('/api/books', bookRoutes)
 app.use('/api/shared-readings', sharedReadingRoutes)
 app.use('/api/annotations', annotationRoutes)
 app.use('/api/admin', adminRoutes)
+app.use('/api/epub', epubRoutes)
 
 // Servir les fichiers statiques (EPUBs, images)
 app.use('/uploads', express.static('uploads'))
+app.use('/books', express.static('uploads/books'))
+app.use('/epub', express.static('uploads/epub'))
 
 // Route de santé
 app.get('/api/health', (req, res) => {

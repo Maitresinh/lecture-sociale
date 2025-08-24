@@ -22,21 +22,29 @@ model User {
   participations  SharedReadingParticipant[]
   annotations     Annotation[]
   citations       Citation[]
+  personalAnnotations PersonalAnnotation[]
 
   @@map("users")
 }
 
 model Book {
-  id          String   @id @default(cuid())
-  title       String
-  author      String
-  description String?
-  coverUrl    String?
-  epubUrl     String
-  epubPath    String
-  totalPages  Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id              String   @id @default(cuid())
+  title           String
+  author          String
+  description     String?
+  coverUrl        String?
+  epubUrl         String?  // URL publique pour téléchargement
+  epubPath        String?  // Chemin fichier sur serveur
+  filePath        String?  // Chemin complet du fichier EPUB
+  fileName        String?  // Nom du fichier uploadé
+  fileSize        Int?     // Taille du fichier en bytes
+  mimeType        String?  // Type MIME du fichier
+  totalPages      Int      @default(0)
+  totalChapters   Int      @default(0)
+  epubMetadata    String?  // JSON avec métadonnées EPUB (chapitres, etc.)
+  uploadedBy      String?  // ID de l'utilisateur qui a uploadé
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   // Relations
   sharedReadings SharedReading[]
@@ -129,6 +137,23 @@ model ReadingSession {
 
   @@unique([sharedReadingId, userId])
   @@map("reading_sessions")
+}
+
+model PersonalAnnotation {
+  id           String   @id @default(cuid())
+  epubId       String   // Identifier for the EPUB book
+  cfiRange     String   // EPUB Canonical Fragment Identifier range
+  text         String   // Selected text
+  comment      String   // User's comment
+  color        String   // Highlight color
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("personal_annotations")
 }
 
 // Note: Les enums sont remplacés par des strings pour SQLite

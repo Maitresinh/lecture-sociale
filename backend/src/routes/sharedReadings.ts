@@ -386,6 +386,124 @@ router.post('/:id/join', authenticate, asyncHandler(async (req, res) => {
 // @desc    Mettre à jour la progression
 // @route   PUT /api/shared-readings/:id/progress
 // @access  Private
+// @desc    Modifier une lecture partagée
+// @route   PUT /api/shared-readings/:id
+// @access  Private (Admin or Creator)
+router.put('/:id', authenticate, asyncHandler(async (req, res) => {
+  const { id } = req.params
+  const userId = req.user.id
+
+  const sharedReading = await prisma.sharedReading.findUnique({
+    where: { id }
+  })
+
+  if (!sharedReading) {
+    return res.status(404).json({
+      success: false,
+      error: 'Lecture partagée non trouvée'
+    })
+  }
+
+  // Vérifier les permissions (admin ou créateur)
+  if (req.user.status !== 'ADMIN' && sharedReading.createdBy !== userId) {
+    return res.status(403).json({
+      success: false,
+      error: 'Permissions insuffisantes'
+    })
+  }
+
+  const updateData: any = {}
+  if (req.body.title) updateData.title = req.body.title
+  if (req.body.description !== undefined) updateData.description = req.body.description
+  if (req.body.bookId) updateData.bookId = req.body.bookId
+  if (req.body.startDate) updateData.startDate = new Date(req.body.startDate)
+  if (req.body.endDate) updateData.endDate = new Date(req.body.endDate)
+
+  const updatedReading = await prisma.sharedReading.update({
+    where: { id },
+    data: updateData,
+    include: {
+      book: true,
+      creator: {
+        select: {
+          id: true,
+          name: true,
+          status: true
+        }
+      }
+    }
+  })
+
+  res.json({
+    success: true,
+    data: updatedReading
+  })
+}))
+
+// @desc    Gérer les participants d'une lecture partagée
+// @route   PUT /api/shared-readings/:id/participants
+// @access  Private (Admin or Creator)
+router.put('/:id/participants', authenticate, asyncHandler(async (req, res) => {
+  const { id } = req.params
+  const userId = req.user.id
+  const { userIds } = req.body // Array des IDs utilisateurs
+
+  if (!Array.isArray(userIds)) {
+    return res.status(400).json({
+      success: false,
+      error: 'userIds doit être un tableau'
+    })
+  }
+
+  const sharedReading = await prisma.sharedReading.findUnique({
+    where: { id }
+  })
+
+  if (!sharedReading) {
+    return res.status(404).json({
+      success: false,
+      error: 'Lecture partagée non trouvée'
+    })
+  }
+
+  // Vérifier les permissions
+  if (req.user.status !== 'ADMIN' && sharedReading.createdBy !== userId) {
+    return res.status(403).json({
+      success: false,
+      error: 'Permissions insuffisantes'
+    })
+  }
+
+  // Supprimer les anciens participants (sauf le créateur)
+  await prisma.sharedReadingParticipant.deleteMany({
+    where: {
+      sharedReadingId: id,
+      userId: {
+        not: sharedReading.createdBy
+      }
+    }
+  })
+
+  // Ajouter les nouveaux participants
+  if (userIds.length > 0) {
+    await prisma.sharedReadingParticipant.createMany({
+      data: userIds
+        .filter(uid => uid !== sharedReading.createdBy) // Éviter le doublon avec le créateur
+        .map(uid => ({
+          sharedReadingId: id,
+          userId: uid,
+          progress: 0
+        })),
+      skipDuplicates: true
+    })
+  }
+
+  res.json({
+    success: true,
+    message: 'Participants mis à jour'
+  })
+}))
+
 router.put('/:id/progress', authenticate, asyncHandler(async (req, res) => {
   const { id } = req.params
   const userId = req.user.id
